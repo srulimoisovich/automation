@@ -1,0 +1,17 @@
+{
+    "request": {
+        "from": "RON",
+        "to": "MDL",
+        "date": "2025-06-19"
+    },
+    "response": {
+        "error": "",
+        "data": {
+            "from": "RON",
+            "to": "MDL",
+            "rate": 0.2554604674926555,
+            "date": "2025-06-19"
+        }
+    },
+    "saved_at": "2026-10-23 15:32:40"
+}
