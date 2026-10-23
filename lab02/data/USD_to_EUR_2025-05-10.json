@@ -1,0 +1,17 @@
+{
+    "request": {
+        "from": "USD",
+        "to": "EUR",
+        "date": "2025-05-10"
+    },
+    "response": {
+        "error": "",
+        "data": {
+            "from": "USD",
+            "to": "EUR",
+            "rate": 1.1364468810887665,
+            "date": "2025-05-10"
+        }
+    },
+    "saved_at": "2026-10-23 15:35:22"
+}
