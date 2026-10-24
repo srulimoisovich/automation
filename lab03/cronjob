@@ -1,0 +1,15 @@
+# Задания cron (формат /etc/cron.d)
+
+SERVICE_URL=http://host.docker.internal:8080
+
+# Каждый день в 06:00: MDL -> EUR за вчера
+0 6 * * * root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t EUR -d "$(date -d '-1 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1
+
+# Пятница 17:00: MDL -> USD за прошлую неделю (7 дней)
+0 17 * * 5 root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t USD -d "$(date -d '-7 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1
+0 17 * * 5 root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t USD -d "$(date -d '-6 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1
+0 17 * * 5 root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t USD -d "$(date -d '-5 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1
+0 17 * * 5 root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t USD -d "$(date -d '-4 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1
+0 17 * * 5 root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t USD -d "$(date -d '-3 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1
+0 17 * * 5 root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t USD -d "$(date -d '-2 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1
+0 17 * * 5 root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t USD -d "$(date -d '-1 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1
