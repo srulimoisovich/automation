@@ -1,0 +1,36 @@
+# Расписание для скрипта курса валют (лабораторная работа №3).
+# entrypoint.sh при каждом старте контейнера кладёт этот файл в /etc/cron.d/currency_rates.
+# Каждая строка задания состоит из семи частей, разделённых пробелами:
+#   1) минута (0-59);
+#   2) час (0-23);
+#   3) число месяца (1-31);
+#   4) месяц (1-12);
+#   5) день недели (0-7, где 0 и 7 - воскресенье, 5 - пятница);
+#   6) пользователь, от имени которого cron запускает команду (у нас root);
+#   7) сама команда.
+# Ключ API скрипт берёт сам из переменной EXCHANGE_API_KEY, её задаёт docker-compose.yml.
+
+# Адрес сервиса курсов валют lab02prep (порт 8080 на хосте).
+SERVICE_URL=http://host.docker.internal:8080
+
+# Утреннее задание: каждый день в 6 часов 0 минут запрашиваем курс MDL к EUR за вчерашнее число.
+# Вчерашнюю дату вычисляет date -d '-1 day'. Знак % в формате даты записан как \%:
+# без обратной косой черты cron обрежет команду на этом символе и отдаст остаток на стандартный ввод.
+0 6 * * * root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t EUR -d "$(date -d '-1 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1
+
+# Еженедельно по пятницам в 17:00: курс MDL -> USD за предыдущую неделю.
+# Семь строк, по одной на каждый день, с прошлой пятницы по четверг.
+# 7 дней назад: пятница прошлой недели
+0 17 * * 5 root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t USD -d "$(date -d '-7 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1
+# 6 дней назад: суббота
+0 17 * * 5 root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t USD -d "$(date -d '-6 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1
+# 5 дней назад: воскресенье
+0 17 * * 5 root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t USD -d "$(date -d '-5 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1
+# 4 дня назад: понедельник
+0 17 * * 5 root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t USD -d "$(date -d '-4 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1
+# 3 дня назад: вторник
+0 17 * * 5 root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t USD -d "$(date -d '-3 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1
+# 2 дня назад: среда
+0 17 * * 5 root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t USD -d "$(date -d '-2 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1
+# 1 день назад: четверг
+0 17 * * 5 root /usr/bin/python3 /lab03/currency_exchange_rate.py -f MDL -t USD -d "$(date -d '-1 day' +\%F)" -u "$SERVICE_URL" >> /var/log/cron.log 2>&1

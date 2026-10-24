@@ -7,3 +7,6 @@ __pycache__/
 
 # local secrets
 .env
+
+# lab03 container output (bind mount)
+lab03/data/
