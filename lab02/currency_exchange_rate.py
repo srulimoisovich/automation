@@ -121,7 +121,7 @@ def read_arguments():
     # Дата, на которую нужен курс
     parser.add_argument(
         "-d", "--date", required=True,
-        help=f"дата в формате ГГГГ-ММ-ДД в пределах {FIRST_DATE} — {LAST_DATE}",
+        help=f"дата в формате ГГГГ-ММ-ДД в пределах с {FIRST_DATE} по {LAST_DATE}",
     )
     # Ключ API: сначала из переменной окружения, иначе учебный ключ
     parser.add_argument(
@@ -185,7 +185,7 @@ def check_date(date_text):
     if not first <= parsed <= last:
         report_error(
             f"Ошибка: дата {parsed.isoformat()} выходит за пределы доступного периода "
-            f"({FIRST_DATE} — {LAST_DATE})."
+            f"(с {FIRST_DATE} по {LAST_DATE})."
         )
         return None
 
