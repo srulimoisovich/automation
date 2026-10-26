@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Настройки PHPUnit для проекта gradebook -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         cacheDirectory=".phpunit.cache"
+         colors="false"
+         failOnWarning="true">
+    <testsuites>
+        <!-- Набор Gradebook: каждый файл *Test.php из tests/ -->
+        <testsuite name="Gradebook">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

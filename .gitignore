@@ -10,3 +10,10 @@ __pycache__/
 
 # lab03 container output (bind mount)
 lab03/data/
+
+# lab04: private SSH key of the Jenkins agent (public key is committed)
+lab04/secrets/jenkins_agent_ssh_key
+
+# lab04: Composer dependencies and PHPUnit cache
+lab04/gradebook/vendor/
+lab04/gradebook/.phpunit.cache/

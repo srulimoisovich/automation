@@ -1,0 +1,50 @@
+# Описание инфраструктуры Jenkins для лабораторной работы №4:
+# контроллер Jenkins и SSH-агент, на котором выполняются сборки PHP-проекта.
+
+services:
+  # Контроллер Jenkins (веб-интерфейс, хранение заданий и истории сборок)
+  jenkins-controller:
+    # Официальный образ Jenkins с долгосрочной поддержкой (LTS)
+    image: jenkins/jenkins:lts
+    # Постоянное имя контейнера, по нему удобно выполнять docker exec
+    container_name: jenkins-controller
+    ports:
+      # Порт веб-интерфейса Jenkins
+      - "8080:8080"
+      # Порт для подключения входящих (inbound) агентов
+      - "50000:50000"
+    volumes:
+      # Все настройки, задания и сборки Jenkins сохраняются в томе jenkins_home
+      - jenkins_home:/var/jenkins_home
+    networks:
+      - jenkins-network
+
+  # SSH-агент: контейнер с sshd, Java и PHP, к которому Jenkins подключается по SSH
+  ssh-agent:
+    # Образ собирается из Dockerfile в этом же каталоге
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ssh-agent
+    environment:
+      # Открытый ключ, который агент добавит в authorized_keys пользователя jenkins.
+      # Значение подставляется из файла .env
+      - JENKINS_AGENT_SSH_PUBKEY=${JENKINS_AGENT_SSH_PUBKEY}
+    volumes:
+      # Рабочий каталог агента (remote root directory узла ssh-agent1)
+      - jenkins_agent_volume:/home/jenkins/agent
+    # Агент запускается после контроллера
+    depends_on:
+      - jenkins-controller
+    networks:
+      - jenkins-network
+
+# Именованные тома Docker
+volumes:
+  jenkins_home:
+  jenkins_agent_volume:
+
+# Отдельная сеть: внутри неё контроллер находит агента по имени ssh-agent
+networks:
+  jenkins-network:
+    driver: bridge
