@@ -1,0 +1,44 @@
+// Jenkinsfile проекта gradebook: установка зависимостей и запуск тестов
+pipeline {
+    agent {
+        label 'php-agent'
+    }
+
+    stages {
+        // Установка зависимостей через Composer
+        stage('Install Dependencies') {
+            steps {
+                echo 'Preparing project...'
+                sh '''
+                    cd lab04/gradebook
+                    php --version
+                    composer --version
+                    composer install --no-interaction --optimize-autoloader
+                '''
+            }
+        }
+
+        // Запуск модульных тестов PHPUnit
+        stage('Test') {
+            steps {
+                echo 'Running tests...'
+                sh '''
+                    cd lab04/gradebook
+                    vendor/bin/phpunit --testdox
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline completed.'
+        }
+        success {
+            echo 'All stages completed successfully!'
+        }
+        failure {
+            echo 'Errors detected in the pipeline.'
+        }
+    }
+}
