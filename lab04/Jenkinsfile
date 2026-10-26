@@ -1,14 +1,17 @@
-// Jenkinsfile проекта gradebook: установка зависимостей и запуск тестов
+// Jenkinsfile проекта gradebook. Подключается как Pipeline script from SCM, путь lab04/Jenkinsfile.
 pipeline {
+    // Jenkins отдаёт сборку любому узлу с меткой php-agent; у нас это ssh-agent1, где установлен PHP
     agent {
         label 'php-agent'
     }
 
     stages {
-        // Установка зависимостей через Composer
+        // Этап 1: подготовка проекта и установка зависимостей
         stage('Install Dependencies') {
             steps {
                 echo 'Preparing project...'
+                // Переходим в каталог проекта, выводим версии PHP и Composer
+                // и устанавливаем зависимости из composer.lock (PHPUnit попадает в vendor/)
                 sh '''
                     cd lab04/gradebook
                     php --version
@@ -18,10 +21,11 @@ pipeline {
             }
         }
 
-        // Запуск модульных тестов PHPUnit
+        // Этап 2: запуск модульных тестов
         stage('Test') {
             steps {
                 echo 'Running tests...'
+                // Ключ --testdox выводит названия тестов в виде предложений (из атрибутов TestDox)
                 sh '''
                     cd lab04/gradebook
                     vendor/bin/phpunit --testdox
@@ -30,13 +34,17 @@ pipeline {
         }
     }
 
+    // Действия после завершения всех этапов
     post {
+        // Выполняется всегда, независимо от результата
         always {
             echo 'Pipeline completed.'
         }
+        // Выполняется только при успешной сборке
         success {
             echo 'All stages completed successfully!'
         }
+        // Выполняется, если хотя бы один этап завершился ошибкой
         failure {
             echo 'Errors detected in the pipeline.'
         }

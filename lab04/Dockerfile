@@ -1,7 +1,18 @@
-# Образ SSH-агента для Jenkins: Java 21, PHP и Composer
+# Агент Jenkins на базе jenkins/ssh-agent:jdk21 + PHP для тестов gradebook.
+# За основу берём официальный образ jenkins/ssh-agent с Java 21 (в нём уже есть sshd и git).
+# Версия Java агента должна быть не ниже, чем у контроллера: Jenkins 2.580.1 собран под Java 21.
 FROM jenkins/ssh-agent:jdk21
 
+# Обновляем список пакетов и устанавливаем PHP:
+# php-cli      - интерпретатор PHP для командной строки (как в задании);
+# php-xml      - расширения dom, xml и xmlwriter, без них PHPUnit не устанавливается;
+# php-mbstring - функции для строк в UTF-8, тоже требуются PHPUnit;
+# unzip        - Composer распаковывает скачанные zip-архивы пакетов с его помощью.
 RUN apt-get update && apt-get install -y php-cli php-xml php-mbstring unzip && rm -rf /var/lib/apt/lists/*
 
+# Скачиваем Composer конкретной версии (2.10.3) с официального сайта getcomposer.org
 ADD https://getcomposer.org/download/2.10.3/composer.phar /usr/local/bin/composer
+
+# Файл, скачанный через ADD по URL, получает права 600 (читать его может только root),
+# поэтому разрешаем всем пользователям, в том числе jenkins, читать и запускать Composer
 RUN chmod 755 /usr/local/bin/composer
