@@ -11,6 +11,8 @@ RUN python3 -m venv /opt/ansible \
 
 ENV PATH="/opt/ansible/bin:${PATH}"
 
+RUN ln -s /opt/ansible/bin/ansible /opt/ansible/bin/ansible-playbook /opt/ansible/bin/ansible-galaxy /usr/local/bin/
+
 RUN adduser --disabled-password --gecos "" jenkins \
     && mkdir -p /home/jenkins/.ssh /home/jenkins/agent /run/sshd
 
