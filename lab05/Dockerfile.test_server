@@ -1,0 +1,24 @@
+# Тестовый сервер на Ubuntu 22.04: Ansible входит сюда по SSH как пользователь ansible.
+FROM ubuntu:22.04
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssh-server sudo python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN adduser --disabled-password --gecos "" ansible \
+    && echo "ansible ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ansible \
+    && chmod 440 /etc/sudoers.d/ansible \
+    && mkdir -p /home/ansible/.ssh /run/sshd
+
+COPY secrets/test_server_ansible_key.pub /home/ansible/.ssh/authorized_keys
+
+RUN chown -R ansible:ansible /home/ansible/.ssh \
+    && chmod 700 /home/ansible/.ssh \
+    && chmod 600 /home/ansible/.ssh/authorized_keys
+
+RUN echo "PasswordAuthentication no" >> /etc/ssh/sshd_config \
+    && echo "PermitRootLogin no" >> /etc/ssh/sshd_config
+
+EXPOSE 22 80
+
+CMD ["/usr/sbin/sshd", "-D"]
