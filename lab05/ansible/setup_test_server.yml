@@ -1,0 +1,74 @@
+# Что делает этот плейбук с группой webservers: ставит Apache2 и mod_php, готовит каталог и включает сайт gradebook.
+- name: Настройка тестового сервера для gradebook
+  hosts: webservers
+  vars:
+    site_title: Журнал оценок
+    gradebook_dir: /var/www/gradebook
+    php_version: "8.1"
+
+  tasks:
+    - name: Установка веб-сервера Apache2
+      become: true
+      ansible.builtin.apt:
+        name: apache2
+        state: present
+        update_cache: true
+
+    - name: Установка PHP и расширений
+      become: true
+      ansible.builtin.apt:
+        name:
+          - libapache2-mod-php
+          - php-mbstring
+          - php-intl
+        state: present
+
+    - name: Настройка часового пояса PHP
+      become: true
+      ansible.builtin.lineinfile:
+        path: "/etc/php/{{ php_version }}/apache2/php.ini"
+        regexp: '^;?date.timezone'
+        line: "date.timezone = Europe/Chisinau"
+      notify: Перезапуск Apache2
+
+    - name: Запуск Apache2
+      become: true
+      ansible.builtin.service:
+        name: apache2
+        state: started
+
+    - name: Каталог сайта
+      become: true
+      ansible.builtin.file:
+        path: "{{ gradebook_dir }}/public"
+        state: directory
+        mode: "0755"
+
+    - name: Файл виртуального хоста
+      become: true
+      ansible.builtin.template:
+        src: templates/gradebook.conf.j2
+        dest: /etc/apache2/sites-available/gradebook.conf
+        mode: "0644"
+      notify: Перезапуск Apache2
+
+    - name: Включение сайта gradebook
+      become: true
+      ansible.builtin.command: a2ensite gradebook
+      register: a2ensite_result
+      changed_when: "'already enabled' not in a2ensite_result.stdout"
+      notify: Перезапуск Apache2
+
+    - name: Отключение сайта по умолчанию
+      become: true
+      ansible.builtin.command: a2dissite 000-default
+      register: a2dissite_result
+      changed_when: "'already disabled' not in a2dissite_result.stdout"
+      notify: Перезапуск Apache2
+
+  handlers:
+    - name: Перезапуск Apache2
+      become: true
+      ansible.builtin.service:
+        name: apache2
+        state: restarted
