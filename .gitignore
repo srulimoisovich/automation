@@ -17,3 +17,16 @@ lab04/secrets/jenkins_agent_ssh_key
 # lab04: Composer dependencies and PHPUnit cache
 lab04/gradebook/vendor/
 lab04/gradebook/.phpunit.cache/
+
+# lab05: private SSH keys (public keys are committed)
+lab05/secrets/jenkins_agent_ssh_key
+lab05/secrets/ansible_agent_ssh_key
+lab05/secrets/test_server_ansible_key
+
+# lab05: Composer dependencies, PHPUnit cache and reports
+lab05/gradebook/vendor/
+lab05/gradebook/.phpunit.cache/
+lab05/gradebook/build/
+
+# lab05: archive that the deploy pipeline sends to the test server
+lab05/gradebook.tar.gz
