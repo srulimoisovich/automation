@@ -74,6 +74,29 @@ final class GradeBook
     }
 
     /**
+     * Возвращает оценки по предмету в порядке добавления.
+     *
+     * Нужен веб-странице, чтобы показать в таблице сами оценки рядом со средним баллом.
+     *
+     * @param string $subject название предмета
+     *
+     * @return list<int>
+     *
+     * @throws GradeException если предмета нет в журнале
+     */
+    public function gradesFor(string $subject): array
+    {
+        $subjectName = trim($subject);
+
+        // Как и в averageFor, неизвестный предмет считается ошибкой
+        if (!isset($this->gradesBySubject[$subjectName])) {
+            throw new GradeException(sprintf('Предмет "%s" отсутствует в журнале.', $subjectName));
+        }
+
+        return $this->gradesBySubject[$subjectName];
+    }
+
+    /**
      * Возвращает средний балл по предмету, округлённый до двух знаков.
      *
      * @param string $subject название предмета

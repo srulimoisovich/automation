@@ -1,0 +1,8 @@
+<?php
+// Настройки журнала оценок на сервере. Файл создаёт Ansible из шаблона config.php.j2.
+return [
+    'title' => '{{ site_title }}',
+    'build' => '{{ build_number | default("вручную") }}',
+    'deployed_at' => '{{ ansible_date_time.iso8601 }}',
+    'server' => '{{ inventory_hostname }}',
+];

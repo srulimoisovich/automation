@@ -1,0 +1,33 @@
+# Выкладка журнала оценок: архив из рабочего каталога Jenkins распаковывается на сервере.
+- name: Копирование файлов gradebook на тестовый сервер
+  hosts: webservers
+  vars:
+    gradebook_dir: /var/www/gradebook
+    archive: "{{ playbook_dir }}/../gradebook.tar.gz"
+
+  tasks:
+    - name: Проверка архива
+      ansible.builtin.stat:
+        path: "{{ archive }}"
+      delegate_to: localhost
+      register: archive_stat
+
+    - name: Архив должен существовать
+      ansible.builtin.assert:
+        that: archive_stat.stat.exists
+        fail_msg: "Архив {{ archive }} не найден, сначала выполните tar в конвейере"
+
+    - name: Каталог приложения
+      become: true
+      ansible.builtin.file:
+        path: "{{ gradebook_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Распаковка архива на сервере
+      become: true
+      ansible.builtin.unarchive:
+        src: "{{ archive }}"
+        dest: "{{ gradebook_dir }}"
+        owner: root
+        group: www-data

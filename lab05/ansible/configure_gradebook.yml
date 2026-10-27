@@ -1,0 +1,30 @@
+# Второй плейбук выкладки: после распаковки дописывает config.php, выставляет владельца root:www-data и запрашивает главную страницу.
+- name: Настройка gradebook на тестовом сервере
+  hosts: webservers
+  vars:
+    site_title: Журнал оценок
+    gradebook_dir: /var/www/gradebook
+
+  tasks:
+    - name: Файл настроек config.php
+      become: true
+      ansible.builtin.template:
+        src: templates/config.php.j2
+        dest: "{{ gradebook_dir }}/config.php"
+        owner: root
+        group: www-data
+        mode: "0640"
+
+    - name: Права на файлы
+      become: true
+      ansible.builtin.file:
+        path: "{{ gradebook_dir }}"
+        owner: root
+        group: www-data
+        recurse: true
+
+    - name: Проверка страницы
+      ansible.builtin.uri:
+        url: http://localhost/
+        return_content: true
+        status_code: 200
