@@ -1,0 +1,28 @@
+# Управляющий узел Ansible: агент Jenkins на Ubuntu 24.04, с которого запускаются плейбуки.
+FROM ubuntu:24.04
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        openssh-server openssh-client git python3 python3-venv openjdk-21-jre-headless \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m venv /opt/ansible \
+    && /opt/ansible/bin/pip install --no-cache-dir "ansible-core==2.20.*"
+
+ENV PATH="/opt/ansible/bin:${PATH}"
+
+RUN adduser --disabled-password --gecos "" jenkins \
+    && mkdir -p /home/jenkins/.ssh /home/jenkins/agent /run/sshd
+
+COPY secrets/ansible_agent_ssh_key.pub /home/jenkins/.ssh/authorized_keys
+
+RUN chown -R jenkins:jenkins /home/jenkins \
+    && chmod 700 /home/jenkins/.ssh \
+    && chmod 600 /home/jenkins/.ssh/authorized_keys
+
+RUN echo "PasswordAuthentication no" >> /etc/ssh/sshd_config \
+    && echo "PermitRootLogin no" >> /etc/ssh/sshd_config
+
+EXPOSE 22
+
+CMD ["/usr/sbin/sshd", "-D"]
