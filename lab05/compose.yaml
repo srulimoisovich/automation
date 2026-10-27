@@ -24,7 +24,7 @@ services:
     # Образ собирается из Dockerfile в этом же каталоге
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.ssh_agent
     container_name: ssh-agent
     environment:
       # Открытый ключ, который агент добавит в authorized_keys пользователя jenkins.
