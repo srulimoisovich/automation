@@ -49,7 +49,7 @@ final class GradeBookTest extends TestCase
         $this->assertSame(8.67, $this->gradeBook->averageFor('Физика'));
     }
 
-    /** Общий балл - среднее средних: (10 + 7) / 2 = 8.5, а не среднее всех трёх оценок. */
+    /** Общий балл равен среднему средних: (10 + 7) / 2 = 8.5, а не среднее всех трёх оценок. */
     #[TestDox('Общий средний балл считается по средним баллам предметов')]
     public function testOverallAverageUsesSubjectAverages(): void
     {
@@ -96,7 +96,7 @@ final class GradeBookTest extends TestCase
         $this->gradeBook->averageFor('Химия');
     }
 
-    /** Средний балл 4.5 - задолженность, ровно 5 - уже нет. */
+    /** Средний балл 4.5 означает задолженность, ровно 5 уже нет. */
     #[TestDox('Предметы со средним баллом ниже 5 считаются задолженностями')]
     public function testSubjectsBelowFiveAreFailed(): void
     {

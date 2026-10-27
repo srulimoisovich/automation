@@ -1,8 +1,13 @@
 <?php
 // Настройки журнала оценок на сервере. Файл создаёт Ansible из шаблона config.php.j2.
+// Его подключает public/index.php; при каждой выкладке файл записывается заново.
 return [
+    // Заголовок страницы
     'title' => '{{ site_title }}',
+    // Номер сборки Jenkins; при запуске плейбука без -e build_number будет "вручную"
     'build' => '{{ build_number | default("вручную") }}',
+    // Время выкладки по часам сервера в UTC (факт date_time из ansible_facts)
     'deployed_at' => '{{ ansible_facts['date_time']['iso8601'] }}',
+    // Имя сервера из инвентаря
     'server' => '{{ inventory_hostname }}',
 ];

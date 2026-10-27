@@ -1,11 +1,18 @@
 # Второй плейбук выкладки: после распаковки дописывает config.php, выставляет владельца root:www-data и запрашивает главную страницу.
+# Номер сборки передаётся из конвейера: -e build_number=$BUILD_NUMBER.
 - name: Настройка gradebook на тестовом сервере
   hosts: webservers
   vars:
+    # Заголовок страницы, записывается в config.php
     site_title: Журнал оценок
+    # Каталог проекта на сервере
     gradebook_dir: /var/www/gradebook
 
   tasks:
+    # config.php хранит заголовок, номер сборки, время выкладки и имя сервера;
+    # страница показывает эти данные внизу, так видно, какая сборка сейчас на сервере.
+    # Права 0640 и группа www-data: файл читает Apache, остальные пользователи не читают.
+    # become: файл создаётся в каталоге root.
     - name: Файл настроек config.php
       become: true
       ansible.builtin.template:
@@ -15,6 +22,8 @@
         group: www-data
         mode: "0640"
 
+    # Все файлы проекта принадлежат root и группе www-data.
+    # become: смена владельца доступна только root.
     - name: Права на файлы
       become: true
       ansible.builtin.file:
@@ -23,6 +32,8 @@
         group: www-data
         recurse: true
 
+    # Запрос к странице с самого сервера: плейбук завершится ошибкой, если Apache не вернул 200.
+    # Обычного пользователя достаточно, become не нужен.
     - name: Проверка страницы
       ansible.builtin.uri:
         url: http://localhost/

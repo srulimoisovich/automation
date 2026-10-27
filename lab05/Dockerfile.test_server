@@ -1,24 +1,42 @@
 # Тестовый сервер на Ubuntu 22.04: Ansible входит сюда по SSH как пользователь ansible.
+# 22.04 взят как более старый LTS-выпуск, какой часто стоит на серверах; PHP 8.1 из его apt
+# достаточно для gradebook (в composer.json указано "php": ">=8.1").
 FROM ubuntu:22.04
 
+# Минимальный набор, чтобы Ansible мог управлять сервером:
+# openssh-server: Ansible подключается по SSH;
+# sudo: задачи с become выполняются от root через sudo;
+# python3: модули Ansible выполняются на сервере интерпретатором Python.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openssh-server sudo python3 \
     && rm -rf /var/lib/apt/lists/*
 
+# Пользователь ansible без пароля (вход только по ключу).
+# Файл в /etc/sudoers.d разрешает ему sudo без пароля: иначе become ждал бы ввода пароля.
+# Права 440 требует сам sudo, файл с другими правами он игнорирует.
+# Пустой /run/sshd создаётся по той же причине, что и в Dockerfile.ansible_agent (см. комментарий там).
 RUN adduser --disabled-password --gecos "" ansible \
     && echo "ansible ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ansible \
     && chmod 440 /etc/sudoers.d/ansible \
     && mkdir -p /home/ansible/.ssh /run/sshd
 
+# Открытый ключ пары test_server_ansible_key: с ним входит управляющий узел Ansible.
+# Закрытый ключ хранится в учётных данных Jenkins и попадает на агент только на время шага sshagent.
 COPY secrets/test_server_ansible_key.pub /home/ansible/.ssh/authorized_keys
 
+# Владелец и права, которых требует sshd для каталога .ssh и authorized_keys
 RUN chown -R ansible:ansible /home/ansible/.ssh \
     && chmod 700 /home/ansible/.ssh \
     && chmod 600 /home/ansible/.ssh/authorized_keys
 
+# Вход только по ключу и без root; строки в конце файла работают, потому что
+# в sshd_config действует первое найденное значение, а другие значения закомментированы.
 RUN echo "PasswordAuthentication no" >> /etc/ssh/sshd_config \
     && echo "PermitRootLogin no" >> /etc/ssh/sshd_config
 
+# 22: SSH для Ansible; 80: Apache, который установит плейбук
 EXPOSE 22 80
 
+# Главный процесс контейнера: sshd на переднем плане.
+# Apache запускает Ansible модулем service, systemd в контейнере нет.
 CMD ["/usr/sbin/sshd", "-D"]
