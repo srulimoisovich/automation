@@ -1,0 +1,83 @@
+# Состав стенда lab05: Jenkins, два агента и сервер, который настраивает Ansible.
+# Порядок связей: контроллер -> ssh-agent (сборка и тесты PHP),
+# контроллер -> ansible-agent (запуск плейбуков), ansible-agent -> test-server (настройка и выкладка).
+
+services:
+  # Контроллер Jenkins (веб-интерфейс, хранение заданий и истории сборок)
+  jenkins-controller:
+    # Официальный образ Jenkins с долгосрочной поддержкой (LTS)
+    image: jenkins/jenkins:lts
+    # Постоянное имя контейнера, по нему удобно выполнять docker exec
+    container_name: jenkins-controller
+    ports:
+      # Порт веб-интерфейса Jenkins
+      - "8080:8080"
+      # Порт для подключения входящих (inbound) агентов
+      - "50000:50000"
+    volumes:
+      # Все настройки, задания и сборки Jenkins сохраняются в томе jenkins_home
+      - jenkins_home:/var/jenkins_home
+    networks:
+      - jenkins-network
+
+  # SSH-агент: контейнер с sshd, Java и PHP, к которому Jenkins подключается по SSH
+  ssh-agent:
+    # Образ собирается из Dockerfile.ssh_agent (в lab04 этот файл назывался просто Dockerfile)
+    build:
+      context: .
+      dockerfile: Dockerfile.ssh_agent
+    container_name: ssh-agent
+    environment:
+      # Открытый ключ, который агент добавит в authorized_keys пользователя jenkins.
+      # Значение подставляется из файла .env
+      - JENKINS_AGENT_SSH_PUBKEY=${JENKINS_AGENT_SSH_PUBKEY}
+    volumes:
+      # Рабочий каталог агента (remote root directory узла ssh-agent1)
+      - jenkins_agent_volume:/home/jenkins/agent
+    # Агент запускается после контроллера
+    depends_on:
+      - jenkins-controller
+    networks:
+      - jenkins-network
+
+  # Управляющий узел Ansible: Ubuntu 24.04 с ansible-core, Java 21 и sshd.
+  # Jenkins подключается к нему по SSH отдельным ключом ansible_agent_ssh_key.
+  ansible-agent:
+    # Образ собирается из Dockerfile.ansible_agent; открытый ключ Jenkins попадает в образ при сборке
+    build:
+      context: .
+      dockerfile: Dockerfile.ansible_agent
+    # Имя контейнера совпадает с именем сервиса, так проще находить его в docker ps
+    container_name: ansible-agent
+    # Тома здесь нет намеренно: каждая сборка заново клонирует репозиторий в рабочий каталог,
+    # поэтому хранить содержимое /home/jenkins/agent между пересозданиями контейнера не нужно
+    depends_on:
+      - jenkins-controller
+      - test-server
+    networks:
+      - jenkins-network
+
+  # Управляемый узел, куда в итоге попадает журнал оценок; из браузера он открывается на порту 8082.
+  test-server:
+    # Образ собирается из Dockerfile.test_server; в него при сборке копируется открытый ключ Ansible
+    build:
+      context: .
+      dockerfile: Dockerfile.test_server
+    # По этому имени (и по имени сервиса) сервер записан в инвентаре ansible/hosts.ini
+    container_name: test-server
+    ports:
+      # Порт 80 сервера (Apache) открывается на хосте как 8082: 8080 уже занят Jenkins
+      - "8082:80"
+    networks:
+      - jenkins-network
+
+# Именованные тома Docker
+volumes:
+  jenkins_home:
+  jenkins_agent_volume:
+
+# Общая сеть стенда: внутри неё контейнеры находят друг друга по именам сервисов
+# (ssh-agent, ansible-agent, test-server)
+networks:
+  jenkins-network:
+    driver: bridge

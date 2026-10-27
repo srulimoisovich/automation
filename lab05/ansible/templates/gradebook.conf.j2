@@ -1,0 +1,20 @@
+# Виртуальный хост журнала оценок. Файл создаёт Ansible из шаблона gradebook.conf.j2.
+# Сайт: {{ site_title }}.
+# Правки вручную будут перезаписаны при следующем запуске setup_test_server.yml.
+
+# Сайт отвечает на порту 80 на любом адресе сервера
+<VirtualHost *:80>
+    # Наружу открыт только каталог public: src/ и config.php из браузера недоступны
+    DocumentRoot {{ gradebook_dir }}/public
+
+    <Directory {{ gradebook_dir }}/public>
+        # Разрешаем Apache отдавать файлы из этого каталога всем клиентам
+        Require all granted
+        # При запросе "/" выполняется index.php
+        DirectoryIndex index.php
+    </Directory>
+
+    # Отдельные журналы сайта, чтобы ошибки gradebook не смешивались с другими сайтами
+    ErrorLog ${APACHE_LOG_DIR}/gradebook_error.log
+    CustomLog ${APACHE_LOG_DIR}/gradebook_access.log combined
+</VirtualHost>

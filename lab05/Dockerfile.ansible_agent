@@ -1,0 +1,60 @@
+# Управляющий узел Ansible: агент Jenkins на Ubuntu 24.04, с которого запускаются плейбуки.
+# Задание требует образ на основе Ubuntu; 24.04 выбран как текущий LTS-выпуск с Python 3.12 и Java 21.
+FROM ubuntu:24.04
+
+# Пакеты, без которых узел не может работать агентом Jenkins и управлять сервером:
+# openssh-server: Jenkins подключается к узлу по SSH (плагин SSH Build Agents);
+# openssh-client: ssh, ssh-keyscan, а также программы ssh-agent и ssh-add для шага sshagent;
+# git: этап клонирования репозитория выполняется на самом узле;
+# python3 и python3-venv: Ansible написан на Python и ставится в отдельное виртуальное окружение;
+# openjdk-21-jre-headless: Java для процесса remoting.jar, версия как у контроллера (Java 21).
+# Ключ --no-install-recommends не тянет необязательные пакеты, список apt удаляется для меньшего образа.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        openssh-server openssh-client git python3 python3-venv openjdk-21-jre-headless \
+    && rm -rf /var/lib/apt/lists/*
+
+# Ansible ставится через pip в виртуальное окружение /opt/ansible:
+# системный pip в Ubuntu 24.04 отказывается ставить пакеты (PEP 668, externally-managed-environment),
+# а пакет ansible из apt старее и тянет полный набор коллекций, которые здесь не нужны.
+# Пакет ansible-core содержит встроенные модули ansible.builtin, их хватает для всех плейбуков работы.
+# Версия закреплена до ветки 2.20, чтобы пересборка образа не принесла несовместимых изменений.
+RUN python3 -m venv /opt/ansible \
+    && /opt/ansible/bin/pip install --no-cache-dir "ansible-core==2.20.*"
+
+# PATH с /opt/ansible/bin действует для docker exec и docker compose exec.
+ENV PATH="/opt/ansible/bin:${PATH}"
+
+# SSH-сессия Jenkins не видит переменных ENV из Dockerfile и получает стандартный PATH sshd,
+# поэтому команды Ansible дополнительно доступны через ссылки в /usr/local/bin.
+RUN ln -s /opt/ansible/bin/ansible /opt/ansible/bin/ansible-playbook /opt/ansible/bin/ansible-galaxy /usr/local/bin/
+
+# Пользователь jenkins, под которым контроллер входит на узел и выполняет сборки.
+# Пароль не задаётся: вход разрешён только по ключу.
+# /home/jenkins/agent: рабочий каталог узла (Remote root directory в настройках Jenkins);
+# /run/sshd: каталог разделения привилегий sshd, без него sshd -D завершается с ошибкой
+# "Missing privilege separation directory: /run/sshd".
+RUN adduser --disabled-password --gecos "" jenkins \
+    && mkdir -p /home/jenkins/.ssh /home/jenkins/agent /run/sshd
+
+# Открытый ключ Jenkins (пара ansible_agent_ssh_key) копируется при сборке образа.
+# Его закрытая половина в образ не попадает: она вставлена в Jenkins как credential ansible_agent_ssh_key.
+COPY secrets/ansible_agent_ssh_key.pub /home/jenkins/.ssh/authorized_keys
+
+# sshd проверяет права: каталог .ssh и authorized_keys должны принадлежать пользователю
+# и быть закрыты для остальных, иначе ключ не принимается.
+RUN chown -R jenkins:jenkins /home/jenkins \
+    && chmod 700 /home/jenkins/.ssh \
+    && chmod 600 /home/jenkins/.ssh/authorized_keys
+
+# Строки добавляются в конец файла: в sshd_config действует первое найденное значение,
+# а других значений PasswordAuthentication и PermitRootLogin в образе нет (они закомментированы).
+# Вход по паролю и вход под root запрещены.
+RUN echo "PasswordAuthentication no" >> /etc/ssh/sshd_config \
+    && echo "PermitRootLogin no" >> /etc/ssh/sshd_config
+
+# Порт SSH, к которому подключается контроллер Jenkins
+EXPOSE 22
+
+# sshd работает на переднем плане (-D), поэтому контейнер живёт, пока работает sshd
+CMD ["/usr/sbin/sshd", "-D"]

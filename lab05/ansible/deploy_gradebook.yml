@@ -1,0 +1,44 @@
+# Выкладка журнала оценок: архив из рабочего каталога Jenkins распаковывается на сервере.
+# Архив gradebook.tar.gz собирает конвейер php_deploy_pipeline.groovy перед запуском плейбука.
+- name: Копирование файлов gradebook на тестовый сервер
+  hosts: webservers
+  vars:
+    # Каталог проекта на сервере, тот же, что в setup_test_server.yml
+    gradebook_dir: /var/www/gradebook
+    # Архив лежит в lab05/, на уровень выше каталога с плейбуком
+    archive: "{{ playbook_dir }}/../gradebook.tar.gz"
+
+  tasks:
+    # stat выполняется на управляющем узле (delegate_to: localhost), потому что архив лежит там.
+    # Права root не нужны, become не указан.
+    - name: Проверка архива
+      ansible.builtin.stat:
+        path: "{{ archive }}"
+      delegate_to: localhost
+      register: archive_stat
+
+    # Понятное сообщение вместо ошибки модуля unarchive, если архив забыли собрать
+    - name: Архив должен существовать
+      ansible.builtin.assert:
+        that: archive_stat.stat.exists
+        fail_msg: "Архив {{ archive }} не найден, сначала выполните tar в конвейере"
+
+    # Каталог проекта создаётся, если плейбук запущен на сервер без setup_test_server.yml.
+    # become: /var/www принадлежит root.
+    - name: Каталог приложения
+      become: true
+      ansible.builtin.file:
+        path: "{{ gradebook_dir }}"
+        state: directory
+        mode: "0755"
+
+    # unarchive копирует архив с управляющего узла на сервер по SSH и там распаковывает.
+    # Владелец root, группа www-data: Apache может читать файлы, но не менять их.
+    # become: запись в /var/www/gradebook и смена владельца требуют прав root.
+    - name: Распаковка архива на сервере
+      become: true
+      ansible.builtin.unarchive:
+        src: "{{ archive }}"
+        dest: "{{ gradebook_dir }}"
+        owner: root
+        group: www-data
